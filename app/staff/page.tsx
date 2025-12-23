@@ -142,7 +142,7 @@ export default function StaffPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {fillingPatients.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} />
+                <PatientCard key={patient.id} patient={patient} onDelete={fetchPatients} />
               ))}
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function StaffPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {submittedPatients.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} />
+                <PatientCard key={patient.id} patient={patient} onDelete={fetchPatients} />
               ))}
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function StaffPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {inactivePatients.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} />
+                <PatientCard key={patient.id} patient={patient} onDelete={fetchPatients} />
               ))}
             </div>
           </div>

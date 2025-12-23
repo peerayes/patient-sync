@@ -4,13 +4,18 @@ import {
   validatePhoneNumber,
 } from "@/app/utils/formatPhone";
 import { validateEmail } from "@/app/utils/validators";
+import { supabase } from "@/app/lib/supabase";
 import StatusBadge from "./StatusBadge";
+import { useState } from "react";
 
 interface PatientCardProps {
   patient: Patient;
+  onDelete?: () => void;
 }
 
-export default function PatientCard({ patient }: PatientCardProps) {
+export default function PatientCard({ patient, onDelete }: PatientCardProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const getTimeAgo = (timestamp: string) => {
     const now = new Date();
     const updated = new Date(timestamp);
@@ -36,6 +41,32 @@ export default function PatientCard({ patient }: PatientCardProps) {
   // Validate phone and email
   const phoneValidation = validatePhoneNumber(patient.phone);
   const emailValidation = validateEmail(patient.email);
+
+  const handleDelete = async () => {
+    if (!confirm(`ต้องการลบข้อมูลของ ${patient.first_name} ${patient.last_name} ใช่หรือไม่?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("patients")
+        .delete()
+        .eq("id", patient.id);
+
+      if (error) throw error;
+
+      // Call onDelete callback if provided
+      if (onDelete) {
+        onDelete();
+      }
+    } catch (error) {
+      console.error("Error deleting patient:", error);
+      alert("ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -91,10 +122,21 @@ export default function PatientCard({ patient }: PatientCardProps) {
         )}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-gray-100">
+      <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
         <p className="text-xs text-gray-400">
           Updated: {getTimeAgo(patient.updated_at)}
         </p>
+        <button
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className={`text-xs px-3 py-1 rounded-md transition-colors ${
+            isDeleting
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-red-500 hover:bg-red-600 text-white"
+          }`}
+        >
+          {isDeleting ? "Deleting..." : "Delete"}
+        </button>
       </div>
     </div>
   );

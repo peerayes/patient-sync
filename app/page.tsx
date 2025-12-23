@@ -90,29 +90,6 @@ export default function Home() {
             </div>
           </Link>
         </div>
-
-        {/* Features */}
-        <div className="mt-12 bg-white/50 backdrop-blur rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-            Features
-          </h3>
-          <div className="grid md:grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-3xl mb-2">⚡</div>
-              <p className="text-sm text-gray-700 font-medium">
-                Real-time Sync
-              </p>
-            </div>
-            <div>
-              <div className="text-3xl mb-2">💾</div>
-              <p className="text-sm text-gray-700 font-medium">Auto-save</p>
-            </div>
-            <div>
-              <div className="text-3xl mb-2">🔒</div>
-              <p className="text-sm text-gray-700 font-medium">Secure</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -49,7 +49,7 @@ export default function PatientForm() {
 
   // Generate session ID on component mount
   useEffect(() => {
-    const newSessionId = `PAT-${Date.now()}-${Math.random()
+    const newSessionId = `USER-${Date.now()}-${Math.random()
       .toString(36)
       .substring(2, 9)}`;
     setSessionId(newSessionId);
@@ -87,24 +87,6 @@ export default function PatientForm() {
   // Auto-save function
   const autoSave = async (data: PatientFormData) => {
     if (!sessionId) return;
-
-    // Validate phone and email before auto-save
-    if (data.phone) {
-      const phoneResult = validatePhoneNumber(data.phone);
-      if (!phoneResult.isValid) {
-        console.log("Auto-save blocked: Invalid phone number");
-        return; // Don't save if phone is invalid
-      }
-    }
-
-    if (data.email) {
-      const emailResult = validateEmail(data.email);
-      if (!emailResult.isValid) {
-        console.log("Auto-save blocked: Invalid email");
-        return; // Don't save if email is invalid
-      }
-    }
-
     setIsSaving(true);
 
     try {
@@ -189,7 +171,9 @@ export default function PatientForm() {
     // Validate phone
     const phoneValidation = validatePhoneNumber(formData.phone);
     if (!phoneValidation.isValid) {
-      setPhoneError(phoneValidation.error || "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง");
+      setPhoneError(
+        phoneValidation.error || "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง"
+      );
       hasError = true;
     }
 
@@ -303,7 +287,9 @@ export default function PatientForm() {
                 }}
                 required
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
-                  firstNameError ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                  firstNameError
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
                 }`}
               />
               {firstNameError && (
@@ -343,7 +329,9 @@ export default function PatientForm() {
                 }}
                 required
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
-                  lastNameError ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                  lastNameError
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
                 }`}
               />
               {lastNameError && (
@@ -370,7 +358,9 @@ export default function PatientForm() {
                 }}
                 required
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
-                  dobError ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                  dobError
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
                 }`}
               />
               {dobError && (
@@ -471,14 +461,20 @@ export default function PatientForm() {
                   if (!result.isValid && e.target.value) {
                     setPhoneError(result.error || "");
                     // When phone has error, validate all required fields
-                    if (formData.first_name.trim() === "") setFirstNameError("กรุณากรอกชื่อ");
-                    if (formData.last_name.trim() === "") setLastNameError("กรุณากรอกนามสกุล");
-                    if (formData.date_of_birth === "") setDobError("กรุณาเลือกวันเกิด");
-                    if (formData.address.trim() === "") setAddressError("กรุณากรอกที่อยู่");
+                    if (formData.first_name.trim() === "")
+                      setFirstNameError("กรุณากรอกชื่อ");
+                    if (formData.last_name.trim() === "")
+                      setLastNameError("กรุณากรอกนามสกุล");
+                    if (formData.date_of_birth === "")
+                      setDobError("กรุณาเลือกวันเกิด");
+                    if (formData.address.trim() === "")
+                      setAddressError("กรุณากรอกที่อยู่");
                     // Also validate email
                     const emailResult = validateEmail(formData.email);
                     if (!emailResult.isValid && formData.email) {
-                      setEmailError(emailResult.error || "กรุณากรอกอีเมลที่ถูกต้อง");
+                      setEmailError(
+                        emailResult.error || "กรุณากรอกอีเมลที่ถูกต้อง"
+                      );
                     }
                   }
                 }}
@@ -510,15 +506,14 @@ export default function PatientForm() {
                   if (!result.isValid && e.target.value) {
                     setEmailError(result.error || "");
                     // When email has error, validate all required fields
-                    if (formData.first_name.trim() === "") setFirstNameError("กรุณากรอกชื่อ");
-                    if (formData.last_name.trim() === "") setLastNameError("กรุณากรอกนามสกุล");
-                    if (formData.date_of_birth === "") setDobError("กรุณาเลือกวันเกิด");
-                    if (formData.address.trim() === "") setAddressError("กรุณากรอกที่อยู่");
-                    // Also validate phone
-                    const phoneResult = validatePhoneNumber(formData.phone);
-                    if (!phoneResult.isValid && formData.phone) {
-                      setPhoneError(phoneResult.error || "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง");
-                    }
+                    if (formData.first_name.trim() === "")
+                      setFirstNameError("กรุณากรอกชื่อ");
+                    if (formData.last_name.trim() === "")
+                      setLastNameError("กรุณากรอกนามสกุล");
+                    if (formData.date_of_birth === "")
+                      setDobError("กรุณาเลือกวันเกิด");
+                    if (formData.address.trim() === "")
+                      setAddressError("กรุณากรอกที่อยู่");
                   } else {
                     setEmailError("");
                   }
@@ -552,7 +547,9 @@ export default function PatientForm() {
                 required
                 rows={2}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
-                  addressError ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                  addressError
+                    ? "border-red-500 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
                 }`}
               />
               {addressError && (
