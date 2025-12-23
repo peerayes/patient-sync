@@ -2,6 +2,12 @@
 
 import { Database, supabase } from "@/app/lib/supabase";
 import { PatientFormData } from "@/app/types/patient";
+import {
+  cleanPhoneNumber,
+  formatPhoneNumber,
+  validatePhoneNumber,
+} from "@/app/utils/formatPhone";
+import { validateEmail } from "@/app/utils/validators";
 import { useEffect, useRef, useState } from "react";
 
 type PatientInsert = Database["public"]["Tables"]["patients"]["Insert"];
@@ -12,6 +18,15 @@ export default function PatientForm() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // Error states for all required fields
+  const [firstNameError, setFirstNameError] = useState<string>("");
+  const [lastNameError, setLastNameError] = useState<string>("");
+  const [dobError, setDobError] = useState<string>("");
+  const [genderError, setGenderError] = useState<string>("");
+  const [phoneError, setPhoneError] = useState<string>("");
+  const [emailError, setEmailError] = useState<string>("");
+  const [addressError, setAddressError] = useState<string>("");
 
   const [formData, setFormData] = useState<PatientFormData>({
     first_name: "",
@@ -40,6 +55,25 @@ export default function PatientForm() {
     setSessionId(newSessionId);
   }, []);
 
+  // Check if form is valid (all required fields filled + no validation errors)
+  const isFormValid = (): boolean => {
+    return (
+      formData.first_name.trim() !== "" &&
+      formData.last_name.trim() !== "" &&
+      formData.date_of_birth !== "" &&
+      // Gender always has a valid default value
+      formData.phone.trim() !== "" &&
+      formData.email.trim() !== "" &&
+      formData.address.trim() !== "" &&
+      firstNameError === "" &&
+      lastNameError === "" &&
+      dobError === "" &&
+      phoneError === "" &&
+      emailError === "" &&
+      addressError === ""
+    );
+  };
+
   // Helper to sanitize data before sending to Supabase
   const sanitizePayload = (data: PatientFormData) => {
     return {
@@ -53,6 +87,24 @@ export default function PatientForm() {
   // Auto-save function
   const autoSave = async (data: PatientFormData) => {
     if (!sessionId) return;
+
+    // Validate phone and email before auto-save
+    if (data.phone) {
+      const phoneResult = validatePhoneNumber(data.phone);
+      if (!phoneResult.isValid) {
+        console.log("Auto-save blocked: Invalid phone number");
+        return; // Don't save if phone is invalid
+      }
+    }
+
+    if (data.email) {
+      const emailResult = validateEmail(data.email);
+      if (!emailResult.isValid) {
+        console.log("Auto-save blocked: Invalid email");
+        return; // Don't save if email is invalid
+      }
+    }
+
     setIsSaving(true);
 
     try {
@@ -60,6 +112,7 @@ export default function PatientForm() {
       const payload = {
         session_id: sessionId,
         ...sanitizedData,
+        phone: cleanPhoneNumber(sanitizedData.phone), // Clean phone before save
         status: "filling",
         updated_at: new Date().toISOString(),
       };
@@ -87,6 +140,13 @@ export default function PatientForm() {
     const newData = { ...formData, [name]: value };
     setFormData(newData);
 
+    // Clear errors on change
+    if (name === "first_name" && firstNameError) setFirstNameError("");
+    if (name === "last_name" && lastNameError) setLastNameError("");
+    if (name === "date_of_birth" && dobError) setDobError("");
+    if (name === "gender" && genderError) setGenderError("");
+    if (name === "address" && addressError) setAddressError("");
+
     // Debounce auto-save (1 second delay)
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -105,6 +165,46 @@ export default function PatientForm() {
       clearTimeout(saveTimeoutRef.current);
     }
 
+    // Validate all required fields before submit
+    let hasError = false;
+
+    if (formData.first_name.trim() === "") {
+      setFirstNameError("กรุณากรอกชื่อ");
+      hasError = true;
+    }
+    if (formData.last_name.trim() === "") {
+      setLastNameError("กรุณากรอกนามสกุล");
+      hasError = true;
+    }
+    if (formData.date_of_birth === "") {
+      setDobError("กรุณาเลือกวันเกิด");
+      hasError = true;
+    }
+    // Gender always has a default value, so no validation needed
+    if (formData.address.trim() === "") {
+      setAddressError("กรุณากรอกที่อยู่");
+      hasError = true;
+    }
+
+    // Validate phone
+    const phoneValidation = validatePhoneNumber(formData.phone);
+    if (!phoneValidation.isValid) {
+      setPhoneError(phoneValidation.error || "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง");
+      hasError = true;
+    }
+
+    // Validate email
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      setEmailError(emailValidation.error || "กรุณากรอกอีเมลที่ถูกต้อง");
+      hasError = true;
+    }
+
+    // Block submit if any validation errors
+    if (hasError) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -112,6 +212,7 @@ export default function PatientForm() {
       const payload = {
         session_id: sessionId,
         ...sanitizedData,
+        phone: cleanPhoneNumber(sanitizedData.phone), // Clean phone before save
         status: "submitted", // Change status to submitted
         updated_at: new Date().toISOString(),
       };
@@ -191,10 +292,23 @@ export default function PatientForm() {
                 type="text"
                 name="first_name"
                 value={formData.first_name}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (firstNameError) setFirstNameError("");
+                }}
+                onBlur={(e) => {
+                  if (e.target.value.trim() === "") {
+                    setFirstNameError("กรุณากรอกชื่อ");
+                  }
+                }}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
+                  firstNameError ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                }`}
               />
+              {firstNameError && (
+                <p className="text-red-500 text-xs mt-1">{firstNameError}</p>
+              )}
             </div>
 
             <div>
@@ -218,10 +332,23 @@ export default function PatientForm() {
                 type="text"
                 name="last_name"
                 value={formData.last_name}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (lastNameError) setLastNameError("");
+                }}
+                onBlur={(e) => {
+                  if (e.target.value.trim() === "") {
+                    setLastNameError("กรุณากรอกนามสกุล");
+                  }
+                }}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
+                  lastNameError ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                }`}
               />
+              {lastNameError && (
+                <p className="text-red-500 text-xs mt-1">{lastNameError}</p>
+              )}
             </div>
 
             <div>
@@ -232,10 +359,23 @@ export default function PatientForm() {
                 type="date"
                 name="date_of_birth"
                 value={formData.date_of_birth}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (dobError) setDobError("");
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === "") {
+                    setDobError("กรุณาเลือกวันเกิด");
+                  }
+                }}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
+                  dobError ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                }`}
               />
+              {dobError && (
+                <p className="text-red-500 text-xs mt-1">{dobError}</p>
+              )}
             </div>
 
             <div>
@@ -311,10 +451,46 @@ export default function PatientForm() {
                 type="tel"
                 name="phone"
                 value={formData.phone}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const formatted = formatPhoneNumber(e.target.value);
+                  const newData = { ...formData, phone: formatted };
+                  setFormData(newData);
+                  setPhoneError("");
+
+                  // Debounce auto-save
+                  if (saveTimeoutRef.current) {
+                    clearTimeout(saveTimeoutRef.current);
+                  }
+
+                  saveTimeoutRef.current = setTimeout(() => {
+                    autoSave(newData);
+                  }, 1000);
+                }}
+                onBlur={(e) => {
+                  const result = validatePhoneNumber(e.target.value);
+                  if (!result.isValid && e.target.value) {
+                    setPhoneError(result.error || "");
+                    // When phone has error, validate all required fields
+                    if (formData.first_name.trim() === "") setFirstNameError("กรุณากรอกชื่อ");
+                    if (formData.last_name.trim() === "") setLastNameError("กรุณากรอกนามสกุล");
+                    if (formData.date_of_birth === "") setDobError("กรุณาเลือกวันเกิด");
+                    if (formData.address.trim() === "") setAddressError("กรุณากรอกที่อยู่");
+                    // Also validate email
+                    const emailResult = validateEmail(formData.email);
+                    if (!emailResult.isValid && formData.email) {
+                      setEmailError(emailResult.error || "กรุณากรอกอีเมลที่ถูกต้อง");
+                    }
+                  }
+                }}
+                placeholder="081-234-5678"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500 ${
+                  phoneError ? "border-red-500" : "border-gray-300"
+                }`}
               />
+              {phoneError && (
+                <p className="text-red-500 text-xs mt-1">{phoneError}</p>
+              )}
             </div>
 
             <div>
@@ -325,10 +501,36 @@ export default function PatientForm() {
                 type="email"
                 name="email"
                 value={formData.email}
-                onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500 ${
+                  emailError ? "border-red-500" : "border-gray-300"
+                }`}
+                onBlur={(e) => {
+                  const result = validateEmail(e.target.value);
+                  if (!result.isValid && e.target.value) {
+                    setEmailError(result.error || "");
+                    // When email has error, validate all required fields
+                    if (formData.first_name.trim() === "") setFirstNameError("กรุณากรอกชื่อ");
+                    if (formData.last_name.trim() === "") setLastNameError("กรุณากรอกนามสกุล");
+                    if (formData.date_of_birth === "") setDobError("กรุณาเลือกวันเกิด");
+                    if (formData.address.trim() === "") setAddressError("กรุณากรอกที่อยู่");
+                    // Also validate phone
+                    const phoneResult = validatePhoneNumber(formData.phone);
+                    if (!phoneResult.isValid && formData.phone) {
+                      setPhoneError(phoneResult.error || "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง");
+                    }
+                  } else {
+                    setEmailError("");
+                  }
+                }}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (emailError) setEmailError("");
+                }}
               />
+              {emailError && (
+                <p className="text-red-500 text-xs mt-1">{emailError}</p>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -338,11 +540,24 @@ export default function PatientForm() {
               <textarea
                 name="address"
                 value={formData.address}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (addressError) setAddressError("");
+                }}
+                onBlur={(e) => {
+                  if (e.target.value.trim() === "") {
+                    setAddressError("กรุณากรอกที่อยู่");
+                  }
+                }}
                 required
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
+                  addressError ? "border-red-500 focus:ring-red-500" : "border-gray-300 focus:ring-blue-500"
+                }`}
               />
+              {addressError && (
+                <p className="text-red-500 text-xs mt-1">{addressError}</p>
+              )}
             </div>
           </div>
         </div>
@@ -385,9 +600,35 @@ export default function PatientForm() {
         <div className="flex justify-center">
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg shadow-md hover:shadow-lg transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={!isFormValid() || isSubmitting}
+            className={`font-semibold px-8 py-3 rounded-lg shadow-md transition-all flex items-center gap-2 ${
+              !isFormValid() || isSubmitting
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 hover:shadow-lg text-white"
+            }`}
           >
+            {isSubmitting && (
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            )}
             {isSubmitting ? "กำลังส่งข้อมูล..." : "Submit Form"}
           </button>
         </div>

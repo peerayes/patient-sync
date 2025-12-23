@@ -1,5 +1,10 @@
-import { Patient } from '@/app/types/patient';
-import StatusBadge from './StatusBadge';
+import { Patient } from "@/app/types/patient";
+import {
+  formatPhoneNumberWithSpace,
+  validatePhoneNumber,
+} from "@/app/utils/formatPhone";
+import { validateEmail } from "@/app/utils/validators";
+import StatusBadge from "./StatusBadge";
 
 interface PatientCardProps {
   patient: Patient;
@@ -9,20 +14,28 @@ export default function PatientCard({ patient }: PatientCardProps) {
   const getTimeAgo = (timestamp: string) => {
     const now = new Date();
     const updated = new Date(timestamp);
-    const diffInSeconds = Math.floor((now.getTime() - updated.getTime()) / 1000);
+    const diffInSeconds = Math.floor(
+      (now.getTime() - updated.getTime()) / 1000
+    );
 
-    if (diffInSeconds < 10) return 'just now';
+    if (diffInSeconds < 10) return "just now";
     if (diffInSeconds < 60) return `${diffInSeconds} secs ago`;
 
     const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) return `${diffInMinutes} min${diffInMinutes > 1 ? 's' : ''} ago`;
+    if (diffInMinutes < 60)
+      return `${diffInMinutes} min${diffInMinutes > 1 ? "s" : ""} ago`;
 
     const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    if (diffInHours < 24)
+      return `${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`;
 
     const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`;
   };
+
+  // Validate phone and email
+  const phoneValidation = validatePhoneNumber(patient.phone);
+  const emailValidation = validateEmail(patient.email);
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -39,19 +52,31 @@ export default function PatientCard({ patient }: PatientCardProps) {
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2">
           <span className="text-gray-500">📞</span>
-          <span className="text-gray-700">{patient.phone}</span>
+          <span className="text-gray-700">
+            {formatPhoneNumberWithSpace(patient.phone)}
+          </span>
+          {!phoneValidation.isValid && (
+            <span className="text-red-500 text-xs ml-2">
+              Invalid phone format
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
           <span className="text-gray-500">📧</span>
           <span className="text-gray-700">{patient.email}</span>
+          {!emailValidation.isValid && (
+            <span className="text-red-500 text-xs ml-2">
+              Invalid email format
+            </span>
+          )}
         </div>
 
         {patient.date_of_birth && (
           <div className="flex items-center gap-2">
             <span className="text-gray-500">🎂</span>
             <span className="text-gray-700">
-              {new Date(patient.date_of_birth).toLocaleDateString('th-TH')}
+              {new Date(patient.date_of_birth).toLocaleDateString("th-TH")}
             </span>
           </div>
         )}
@@ -59,7 +84,9 @@ export default function PatientCard({ patient }: PatientCardProps) {
         {patient.address && (
           <div className="flex items-center gap-2">
             <span className="text-gray-500">📍</span>
-            <span className="text-gray-700 line-clamp-1">{patient.address}</span>
+            <span className="text-gray-700 line-clamp-1">
+              {patient.address}
+            </span>
           </div>
         )}
       </div>
