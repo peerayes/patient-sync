@@ -1,13 +1,18 @@
 "use client";
 
-import { supabase } from "@/app/lib/supabase";
+import { Database, supabase } from "@/app/lib/supabase";
 import { PatientFormData } from "@/app/types/patient";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+type PatientInsert = Database["public"]["Tables"]["patients"]["Insert"];
 
 export default function PatientForm() {
   const [sessionId, setSessionId] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
   const [formData, setFormData] = useState<PatientFormData>({
     first_name: "",
     middle_name: "",
@@ -24,6 +29,9 @@ export default function PatientForm() {
     emergency_contact_relationship: "",
   });
 
+  // Ref to hold the timeout ID for debounce
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Generate session ID on component mount
   useEffect(() => {
     const newSessionId = `PAT-${Date.now()}-${Math.random()
@@ -32,38 +40,86 @@ export default function PatientForm() {
     setSessionId(newSessionId);
   }, []);
 
+  // Helper to sanitize data before sending to Supabase
+  const sanitizePayload = (data: PatientFormData) => {
+    return {
+      ...data,
+      date_of_birth: data.date_of_birth === "" ? null : data.date_of_birth,
+      // Handle other potential empty strings that should be null if necessary
+      // e.g. if phone/email are optional in DB but required in Form
+    };
+  };
+
+  // Auto-save function
+  const autoSave = async (data: PatientFormData) => {
+    if (!sessionId) return;
+    setIsSaving(true);
+
+    try {
+      const sanitizedData = sanitizePayload(data);
+      const payload = {
+        session_id: sessionId,
+        ...sanitizedData,
+        status: "filling",
+        updated_at: new Date().toISOString(),
+      };
+
+      // Cast to any to bypass Supabase type inference issue (returns never)
+      const { error } = await supabase
+        .from("patients")
+        .upsert(payload as any, { onConflict: "session_id" });
+
+      if (error) throw error;
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error("Auto-save error:", JSON.stringify(error, null, 2));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const newData = { ...formData, [name]: value };
+    setFormData(newData);
+
+    // Debounce auto-save (1 second delay)
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      autoSave(newData);
+    }, 1000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Clear any pending auto-saves
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("patients").upsert({
+      const sanitizedData = sanitizePayload(formData);
+      const payload = {
         session_id: sessionId,
-        first_name: formData.first_name,
-        middle_name: formData.middle_name,
-        last_name: formData.last_name,
-        date_of_birth: formData.date_of_birth,
-        gender: formData.gender,
-        phone: formData.phone,
-        email: formData.email,
-        address: formData.address,
-        preferred_language: formData.preferred_language,
-        nationality: formData.nationality,
-        religion: formData.religion,
-        emergency_contact_name: formData.emergency_contact_name,
-        emergency_contact_relationship: formData.emergency_contact_relationship,
-        status: "submitted" as const,
+        ...sanitizedData,
+        status: "submitted", // Change status to submitted
         updated_at: new Date().toISOString(),
-      } as any);
+      };
+
+      // Cast to any to bypass Supabase type inference issue
+      const { error } = await supabase
+        .from("patients")
+        .upsert(payload as any, { onConflict: "session_id" });
 
       if (error) throw error;
 
@@ -72,7 +128,7 @@ export default function PatientForm() {
         window.location.reload();
       }, 2000);
     } catch (error) {
-      console.error("Submit error:", error);
+      console.error("Submit error:", JSON.stringify(error, null, 2));
       alert("เกิดข้อผิดพลาดในการส่งฟอร์ม กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsSubmitting(false);
@@ -97,13 +153,26 @@ export default function PatientForm() {
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-6">
       <div className="bg-white shadow-lg rounded-lg p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <span className="text-4xl">🏥</span>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Patient Registration Form
-            </h1>
-            <p className="text-sm text-gray-500">Session ID: {sessionId}</p>
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center gap-3">
+            <span className="text-4xl">🏥</span>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Patient Registration Form
+              </h1>
+              <p className="text-sm text-gray-500">Session ID: {sessionId}</p>
+            </div>
+          </div>
+          {/* Save Status Indicator */}
+          <div className="text-xs text-gray-400 text-right">
+            {isSaving ? (
+              <span className="flex items-center gap-1 text-blue-500">
+                <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                Saving...
+              </span>
+            ) : lastSaved ? (
+              <span>Saved {lastSaved.toLocaleTimeString()}</span>
+            ) : null}
           </div>
         </div>
 
@@ -124,7 +193,7 @@ export default function PatientForm() {
                 value={formData.first_name}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
 
@@ -137,7 +206,7 @@ export default function PatientForm() {
                 name="middle_name"
                 value={formData.middle_name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
 
@@ -151,7 +220,7 @@ export default function PatientForm() {
                 value={formData.last_name}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
 
@@ -165,7 +234,7 @@ export default function PatientForm() {
                 value={formData.date_of_birth}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
 
@@ -178,7 +247,7 @@ export default function PatientForm() {
                 value={formData.gender}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               >
                 <option value="male">ชาย (Male)</option>
                 <option value="female">หญิง (Female)</option>
@@ -195,7 +264,7 @@ export default function PatientForm() {
                 name="nationality"
                 value={formData.nationality}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
 
@@ -208,7 +277,7 @@ export default function PatientForm() {
                 name="religion"
                 value={formData.religion}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
 
@@ -221,7 +290,7 @@ export default function PatientForm() {
                 name="preferred_language"
                 value={formData.preferred_language}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
           </div>
@@ -244,7 +313,7 @@ export default function PatientForm() {
                 value={formData.phone}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
 
@@ -258,7 +327,7 @@ export default function PatientForm() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
 
@@ -272,7 +341,7 @@ export default function PatientForm() {
                 onChange={handleChange}
                 required
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
           </div>
@@ -294,7 +363,7 @@ export default function PatientForm() {
                 name="emergency_contact_name"
                 value={formData.emergency_contact_name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
 
@@ -307,7 +376,7 @@ export default function PatientForm() {
                 name="emergency_contact_relationship"
                 value={formData.emergency_contact_relationship}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500"
               />
             </div>
           </div>
