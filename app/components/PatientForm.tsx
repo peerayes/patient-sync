@@ -44,7 +44,7 @@ export default function PatientForm() {
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
             <span className="bg-teal-600 p-2 rounded-xl">
-              <Heart className="w-10 h-10" />
+              <Heart className="w-10 h-10 text-white" />
             </span>
 
             <div>
