@@ -80,7 +80,7 @@ export default function PatientCard({ patient, onDelete }: PatientCardProps) {
           <h3 className="text-2xl font-semibold text-gray-900">
             {patient.first_name} {patient.middle_name} {patient.last_name}
           </h3>
-          <p className="text-sm text-gray-500">ID: {patient.session_id}</p>
+          <p className="text-xs text-gray-500">ID: {patient.session_id}</p>
         </div>
         <StatusBadge status={patient.status} />
       </div>
@@ -142,10 +142,10 @@ export default function PatientCard({ patient, onDelete }: PatientCardProps) {
         <button
           onClick={handleDelete}
           disabled={isDeleting}
-          className={`text-xs px-3 py-1 rounded-full transition-colors ${
+          className={`text-xs px-3 py-1 rounded-full cursor-pointer ${
             isDeleting
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-red-50 hover:bg-red-600 text-red-500 border border-red-200"
+              : "bg-red-50 text-red-500 border border-red-200"
           }`}
         >
           {isDeleting ? "Deleting..." : "Delete"}

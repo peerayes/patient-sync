@@ -49,7 +49,7 @@ export default function PortalCard({
         {/* Button */}
         <Link href={href}>
           <button
-            className={`w-full ${buttonColor} ${buttonHoverColor} text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 group`}
+            className={`w-full ${buttonColor} ${buttonHoverColor} text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 group cursor-pointer`}
           >
             Access Portal
             <svg

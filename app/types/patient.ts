@@ -1,4 +1,4 @@
-export type PatientStatus = "filling" | "submitted" | "inactive";
+export type PatientStatus = "filling" | "submitted";
 
 export type Gender = "male" | "female" | "other";
 

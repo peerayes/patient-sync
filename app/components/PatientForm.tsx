@@ -48,10 +48,12 @@ export default function PatientForm() {
             </span>
 
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Patient Registration Form
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                Registration Form
               </h1>
-              <p className="text-sm text-gray-500">Session ID: {sessionId}</p>
+              <p className="text-xs md:text-sm text-gray-500">
+                Session ID: {sessionId}
+              </p>
             </div>
           </div>
           {/* Save Status Indicator */}

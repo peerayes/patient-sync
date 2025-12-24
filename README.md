@@ -158,7 +158,7 @@ Patient Form ──► Supabase Database ──► Staff View
 
 ## 👨‍💻 Author
 
-**Peerayes Warisapaweerote**
+**Peerayes Varitpaveeradit**
 
 - GitHub: [@peerayes](https://github.com/peerayes)
 
