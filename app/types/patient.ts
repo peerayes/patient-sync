@@ -1,6 +1,6 @@
-export type PatientStatus = 'filling' | 'submitted' | 'inactive';
+export type PatientStatus = "filling" | "submitted" | "inactive";
 
-export type Gender = 'male' | 'female' | 'other';
+export type Gender = "male" | "female" | "other";
 
 export interface Patient {
   id: string;
@@ -10,7 +10,7 @@ export interface Patient {
   first_name: string;
   middle_name?: string;
   last_name: string;
-  date_of_birth: string;
+  date_of_birth: string | null;
   gender: Gender;
 
   // Contact Information

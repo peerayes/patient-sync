@@ -57,10 +57,10 @@ export default function StaffPage() {
   const inactivePatients = patients.filter((p) => p.status === "inactive");
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 border-t-32 border-blue-600">
+      <div className="max-w-5xl mx-auto p-6">
         {/* Header */}
-        <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+        <div className="bg-white shadow-xs rounded-lg p-6 mb-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <span className="text-4xl">👨‍⚕️</span>
@@ -142,7 +142,11 @@ export default function StaffPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {fillingPatients.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} onDelete={fetchPatients} />
+                <PatientCard
+                  key={patient.id}
+                  patient={patient}
+                  onDelete={fetchPatients}
+                />
               ))}
             </div>
           </div>
@@ -157,7 +161,11 @@ export default function StaffPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {submittedPatients.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} onDelete={fetchPatients} />
+                <PatientCard
+                  key={patient.id}
+                  patient={patient}
+                  onDelete={fetchPatients}
+                />
               ))}
             </div>
           </div>
@@ -172,7 +180,11 @@ export default function StaffPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {inactivePatients.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} onDelete={fetchPatients} />
+                <PatientCard
+                  key={patient.id}
+                  patient={patient}
+                  onDelete={fetchPatients}
+                />
               ))}
             </div>
           </div>

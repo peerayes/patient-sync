@@ -2,7 +2,7 @@ import PatientForm from "@/app/components/PatientForm";
 
 export default function PatientPage() {
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 py-8">
+    <div className="min-h-screen bg-gray-50 border-t-32 border-teal-600">
       <PatientForm />
     </div>
   );

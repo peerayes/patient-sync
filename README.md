@@ -1,40 +1,47 @@
 # 🏥 PatientSync
 
-Real-time patient input form and staff monitoring system built with Next.js, Supabase, and TailwindCSS.
+Real-time patient input form and staff monitoring system built with Next.js 16 (Turbopack), Supabase, and TailwindCSS.
 
-![Next.js](https://img.shields.io/badge/Next.js-16.1-black?logo=next.js)
-![React](https://img.shields.io/badge/React-19.2-blue?logo=react)
-![Supabase](https://img.shields.io/badge/Supabase-Realtime-green?logo=supabase)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.1-38B2AC?logo=tailwind-css)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)
+![Next.js](https://img.shields.io/badge/Next.js-16.1-black?logo=next.js&style=flat-square)
+![React](https://img.shields.io/badge/React-19-blue?logo=react&style=flat-square)
+![Supabase](https://img.shields.io/badge/Supabase-Realtime-green?logo=supabase&style=flat-square)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-38B2AC?logo=tailwind-css&style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&style=flat-square)
+![Lucide](https://img.shields.io/badge/Lucide-Icons-orange?logo=lucide&style=flat-square)
 
 ## 📋 Overview
 
-PatientSync is a responsive, real-time patient registration system consisting of two synchronized interfaces:
+PatientSync is a robust, clean-architecture demonstration of a real-time medical data system. It synchronizes patient registration data instantly with a staff dashboard, allowing for seamless workflow monitoring.
 
-- **Patient Form** (`/patient`) - A responsive form where patients enter their personal information
-- **Staff View** (`/staff`) - A real-time dashboard for staff to monitor patient submissions instantly
+**Key Architecture**: The project separates concerns strictly into **Services** (API), **Hooks** (Logic), and **Components** (UI), ensuring maintainability and scalability.
 
-The two interfaces synchronize in real-time using Supabase Realtime, reflecting patient input immediately on the staff view without page refresh.
+## ✨ Key Features
 
-## ✨ Features
-
-- ✅ Real-time data synchronization between patient and staff views
-- ✅ Responsive design for mobile and desktop
-- ✅ Form validation (required fields, email, phone number)
-- ✅ Status indicators (filling, submitted, inactive)
-- ✅ TypeScript for type safety
-- ✅ Modern UI with TailwindCSS
+- **⚡ Real-time Synchronization**: Data reflects instantly on the Staff Dashboard as the patient types.
+- **🛡️ Clean Architecture**:
+  - **Service Layer**: Centralized API logic with strict type safety.
+  - **Custom Hooks**: Encapsulated form logic (`usePatientForm`) and validation.
+- **💾 Auto-Save**: Form data is automatically saved to Supabase (debounced) to prevent data loss.
+- **👩‍⚕️ Staff Dashboard**:
+  - Categorized views: **Filling** (Real-time), **Submitted**, and **Inactive**.
+  - Live status indicators.
+- **🎨 Modern UI**:
+  - Built with **TailwindCSS 4**.
+  - Beautiful icons from **Lucide React**.
+  - Responsive design for Tablet/Mobile/Desktop.
+- **🔒 Security**:
+  - Row Level Security (RLS) configured (Demo/Public mode).
+  - Client-side validation for Phone (format), Email, and Required fields.
 
 ## 🛠️ Tech Stack
 
-| Technology                                    | Purpose                                      |
-| --------------------------------------------- | -------------------------------------------- |
-| [Next.js 16](https://nextjs.org/)             | React framework with App Router              |
-| [React 19](https://react.dev/)                | UI library                                   |
-| [Supabase](https://supabase.com/)             | PostgreSQL database + Realtime subscriptions |
-| [TailwindCSS 4](https://tailwindcss.com/)     | Utility-first CSS framework                  |
-| [TypeScript](https://www.typescriptlang.org/) | Type safety                                  |
+| Technology                                    | Purpose                                |
+| --------------------------------------------- | -------------------------------------- |
+| [Next.js 16](https://nextjs.org/)             | Framework (App Router, Turbopack)      |
+| [Supabase](https://supabase.com/)             | Database (PostgreSQL) + Realtime + RLS |
+| [TailwindCSS 4](https://tailwindcss.com/)     | Styling System                         |
+| [Lucide React](https://lucide.dev/)           | Iconography                            |
+| [TypeScript](https://www.typescriptlang.org/) | Strict Type Safety                     |
 
 ## 📁 Project Structure
 
@@ -42,24 +49,21 @@ The two interfaces synchronize in real-time using Supabase Realtime, reflecting 
 patient-sync/
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx              # Home page (redirect)
-│   │   ├── patient/
-│   │   │   └── page.tsx          # Patient form
-│   │   └── staff/
-│   │       └── page.tsx          # Staff monitoring view
-│   ├── components/
-│   │   ├── PatientForm.tsx       # Form component
-│   │   ├── PatientCard.tsx       # Patient display card
-│   │   └── StatusBadge.tsx       # Status indicator
+│   │   ├── services/
+│   │   │   └── patientService.ts # API Layer (Supabase Interactions)
+│   │   ├── hooks/
+│   │   │   └── usePatientForm.ts # Logic Layer (State, Validation, Auto-save)
+│   │   ├── components/
+│   │   │   ├── PatientForm.tsx   # UI Layer (Pure Component)
+│   │   │   ├── PatientCard.tsx   # Dashboard Card
+│   │   │   └── PortalCard.tsx    # Selection Menu
+│   │   ├── constants/
+│   │   │   └── portalCards.tsx   # Config Data
+│   │   ├── patient/              # Patient Route
+│   │   └── staff/                # Staff Route
 │   ├── lib/
-│   │   └── supabase.ts           # Supabase client
-│   ├── hooks/
-│   │   ├── usePatientForm.ts     # Form state management
-│   │   └── useRealtimePatients.ts # Realtime subscription
-│   └── types/
-│       └── patient.ts            # TypeScript types
-├── .env.local                    # Environment variables
-└── README.md
+│   │   └── supabase.ts           # Supabase Client Configuration
+│   └── types/                    # Strict TypeScript Definitions
 ```
 
 ## 🚀 Getting Started
@@ -67,70 +71,69 @@ patient-sync/
 ### Prerequisites
 
 - Node.js 18+
-- pnpm (recommended) or npm
-- Supabase account
+- pnpm (recommended)
 
 ### Installation
 
 1. **Clone the repository**
 
-```bash
-git clone https://github.com/peerayes/patient-sync.git
-cd patient-sync
-```
+   ```bash
+   git clone https://github.com/peerayes/patient-sync.git
+   cd patient-sync
+   ```
 
 2. **Install dependencies**
 
-```bash
-pnpm install
-```
+   ```bash
+   pnpm install
+   ```
 
-3. **Set up environment variables**
+3. **Environment Setup**
+   Create `.env.local`:
 
-Create a `.env.local` file in the root directory:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+   ```
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+4. **Database Setup**
+   Run in Supabase SQL Editor:
 
-4. **Set up Supabase database**
+   ```sql
+   -- Create Table
+   CREATE TABLE patients (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     session_id TEXT UNIQUE NOT NULL,
+     first_name TEXT,
+     middle_name TEXT,
+     last_name TEXT,
+     date_of_birth DATE,
+     gender TEXT,
+     phone TEXT,
+     email TEXT,
+     address TEXT,
+     preferred_language TEXT,
+     nationality TEXT,
+     emergency_contact_name TEXT,
+     emergency_contact_relationship TEXT,
+     religion TEXT,
+     status TEXT DEFAULT 'filling',
+     created_at TIMESTAMPTZ DEFAULT NOW(),
+     updated_at TIMESTAMPTZ DEFAULT NOW()
+   );
 
-Run this SQL in your Supabase SQL Editor:
+   -- Enable Realtime
+   ALTER PUBLICATION supabase_realtime ADD TABLE patients;
 
-```sql
-CREATE TABLE patients (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id TEXT UNIQUE NOT NULL,
-  first_name TEXT,
-  middle_name TEXT,
-  last_name TEXT,
-  date_of_birth DATE,
-  gender TEXT,
-  phone TEXT,
-  email TEXT,
-  address TEXT,
-  preferred_language TEXT,
-  nationality TEXT,
-  emergency_contact_name TEXT,
-  emergency_contact_relationship TEXT,
-  religion TEXT,
-  status TEXT DEFAULT 'filling',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+   -- Enable Security (RLS)
+   ALTER TABLE patients ENABLE ROW LEVEL SECURITY;
+   ```
 
--- Enable Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE patients;
-```
+5. **Run Development Server**
 
-5. **Run the development server**
-
-```bash
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see the application.
+   ```bash
+   pnpm dev
+   ```
 
 ## 📱 Usage
 
@@ -153,21 +156,6 @@ Patient Form ──► Supabase Database ──► Staff View
    (input)         (realtime)         (subscribe)
 ```
 
-## 🌐 Deployment
-
-### Deploy on Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/peerayes/patient-sync)
-
-1. Push your code to GitHub
-2. Import project to Vercel
-3. Add environment variables
-4. Deploy!
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
 ## 👨‍💻 Author
 
 **Peerayes Warisapaweerote**
@@ -176,4 +164,4 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-Made with ❤️ using Next.js and Supabase
+Made with ❤️ using Next.js 16 & Supabase

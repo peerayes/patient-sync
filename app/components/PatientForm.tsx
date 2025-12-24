@@ -1,248 +1,54 @@
 "use client";
 
-import { Database, supabase } from "@/app/lib/supabase";
-import { PatientFormData } from "@/app/types/patient";
-import {
-  cleanPhoneNumber,
-  formatPhoneNumber,
-  validatePhoneNumber,
-} from "@/app/utils/formatPhone";
+import { usePatientForm } from "@/app/hooks/usePatientForm";
+import { validatePhoneNumber } from "@/app/utils/formatPhone";
 import { validateEmail } from "@/app/utils/validators";
-import { useEffect, useRef, useState } from "react";
-
-type PatientInsert = Database["public"]["Tables"]["patients"]["Insert"];
+import { Check, Heart } from "lucide-react";
 
 export default function PatientForm() {
-  const [sessionId, setSessionId] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-
-  // Error states for all required fields
-  const [firstNameError, setFirstNameError] = useState<string>("");
-  const [lastNameError, setLastNameError] = useState<string>("");
-  const [dobError, setDobError] = useState<string>("");
-  const [genderError, setGenderError] = useState<string>("");
-  const [phoneError, setPhoneError] = useState<string>("");
-  const [emailError, setEmailError] = useState<string>("");
-  const [addressError, setAddressError] = useState<string>("");
-
-  const [formData, setFormData] = useState<PatientFormData>({
-    first_name: "",
-    middle_name: "",
-    last_name: "",
-    date_of_birth: "",
-    gender: "male",
-    phone: "",
-    email: "",
-    address: "",
-    preferred_language: "",
-    nationality: "",
-    religion: "",
-    emergency_contact_name: "",
-    emergency_contact_relationship: "",
-  });
-
-  // Ref to hold the timeout ID for debounce
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Generate session ID on component mount
-  useEffect(() => {
-    const newSessionId = `USER-${Date.now()}-${Math.random()
-      .toString(36)
-      .substring(2, 9)}`;
-    setSessionId(newSessionId);
-  }, []);
-
-  // Check if form is valid (all required fields filled + no validation errors)
-  const isFormValid = (): boolean => {
-    return (
-      formData.first_name.trim() !== "" &&
-      formData.last_name.trim() !== "" &&
-      formData.date_of_birth !== "" &&
-      // Gender always has a valid default value
-      formData.phone.trim() !== "" &&
-      formData.email.trim() !== "" &&
-      formData.address.trim() !== "" &&
-      firstNameError === "" &&
-      lastNameError === "" &&
-      dobError === "" &&
-      phoneError === "" &&
-      emailError === "" &&
-      addressError === ""
-    );
-  };
-
-  // Helper to sanitize data before sending to Supabase
-  const sanitizePayload = (data: PatientFormData) => {
-    return {
-      ...data,
-      date_of_birth: data.date_of_birth === "" ? null : data.date_of_birth,
-      // Handle other potential empty strings that should be null if necessary
-      // e.g. if phone/email are optional in DB but required in Form
-    };
-  };
-
-  // Auto-save function
-  const autoSave = async (data: PatientFormData) => {
-    if (!sessionId) return;
-    setIsSaving(true);
-
-    try {
-      const sanitizedData = sanitizePayload(data);
-      const payload = {
-        session_id: sessionId,
-        ...sanitizedData,
-        phone: cleanPhoneNumber(sanitizedData.phone), // Clean phone before save
-        status: "filling",
-        updated_at: new Date().toISOString(),
-      };
-
-      // Cast to any to bypass Supabase type inference issue (returns never)
-      const { error } = await supabase
-        .from("patients")
-        .upsert(payload as any, { onConflict: "session_id" });
-
-      if (error) throw error;
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error("Auto-save error:", JSON.stringify(error, null, 2));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    const newData = { ...formData, [name]: value };
-    setFormData(newData);
-
-    // Clear errors on change
-    if (name === "first_name" && firstNameError) setFirstNameError("");
-    if (name === "last_name" && lastNameError) setLastNameError("");
-    if (name === "date_of_birth" && dobError) setDobError("");
-    if (name === "gender" && genderError) setGenderError("");
-    if (name === "address" && addressError) setAddressError("");
-
-    // Debounce auto-save (1 second delay)
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    saveTimeoutRef.current = setTimeout(() => {
-      autoSave(newData);
-    }, 1000);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Clear any pending auto-saves
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    // Validate all required fields before submit
-    let hasError = false;
-
-    if (formData.first_name.trim() === "") {
-      setFirstNameError("กรุณากรอกชื่อ");
-      hasError = true;
-    }
-    if (formData.last_name.trim() === "") {
-      setLastNameError("กรุณากรอกนามสกุล");
-      hasError = true;
-    }
-    if (formData.date_of_birth === "") {
-      setDobError("กรุณาเลือกวันเกิด");
-      hasError = true;
-    }
-    // Gender always has a default value, so no validation needed
-    if (formData.address.trim() === "") {
-      setAddressError("กรุณากรอกที่อยู่");
-      hasError = true;
-    }
-
-    // Validate phone
-    const phoneValidation = validatePhoneNumber(formData.phone);
-    if (!phoneValidation.isValid) {
-      setPhoneError(
-        phoneValidation.error || "กรุณากรอกเบอร์โทรศัพท์ที่ถูกต้อง"
-      );
-      hasError = true;
-    }
-
-    // Validate email
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.isValid) {
-      setEmailError(emailValidation.error || "กรุณากรอกอีเมลที่ถูกต้อง");
-      hasError = true;
-    }
-
-    // Block submit if any validation errors
-    if (hasError) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const sanitizedData = sanitizePayload(formData);
-      const payload = {
-        session_id: sessionId,
-        ...sanitizedData,
-        phone: cleanPhoneNumber(sanitizedData.phone), // Clean phone before save
-        status: "submitted", // Change status to submitted
-        updated_at: new Date().toISOString(),
-      };
-
-      // Cast to any to bypass Supabase type inference issue
-      const { error } = await supabase
-        .from("patients")
-        .upsert(payload as any, { onConflict: "session_id" });
-
-      if (error) throw error;
-
-      setSubmitSuccess(true);
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    } catch (error) {
-      console.error("Submit error:", JSON.stringify(error, null, 2));
-      alert("เกิดข้อผิดพลาดในการส่งฟอร์ม กรุณาลองใหม่อีกครั้ง");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    sessionId,
+    formData,
+    isSubmitting,
+    submitSuccess,
+    isSaving,
+    lastSaved,
+    errors,
+    setErrors,
+    handleChange,
+    handlePhoneChange,
+    handleSubmit,
+    isFormValid,
+  } = usePatientForm();
 
   if (submitSuccess) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
-          <div className="text-6xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-green-800 mb-2">
+      <div className="max-w-5xl mx-auto p-6">
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center">
+          <span className="mx-auto mb-4 flex items-center justify-center w-12 h-12 bg-green-600 rounded-full">
+            <Check className="w-8 h-8 text-white" />
+          </span>
+          <h2 className="text-2xl font-bold text-green-600 mb-2">
             ส่งข้อมูลสำเร็จ!
           </h2>
-          <p className="text-green-700">ข้อมูลของคุณถูกบันทึกเรียบร้อยแล้ว</p>
-          <p className="text-sm text-green-600 mt-2">Session ID: {sessionId}</p>
+          <p className="text-gray-600">ข้อมูลของคุณถูกบันทึกเรียบร้อยแล้ว</p>
+          <p className="text-sm text-gray-600 mt-2">Session ID: {sessionId}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto p-6">
-      <div className="bg-white shadow-lg rounded-lg p-6">
+    <form onSubmit={handleSubmit} className="max-w-5xl mx-auto p-6">
+      <div className="bg-white shadow-xs rounded-lg p-6">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
-            <span className="text-4xl">🏥</span>
+            <span className="bg-teal-600 p-2 rounded-xl">
+              <Heart className="w-10 h-10" />
+            </span>
+
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-gray-900">
                 Patient Registration Form
               </h1>
               <p className="text-sm text-gray-500">Session ID: {sessionId}</p>
@@ -276,24 +82,23 @@ export default function PatientForm() {
                 type="text"
                 name="first_name"
                 value={formData.first_name}
-                onChange={(e) => {
-                  handleChange(e);
-                  if (firstNameError) setFirstNameError("");
-                }}
+                onChange={handleChange}
                 onBlur={(e) => {
                   if (e.target.value.trim() === "") {
-                    setFirstNameError("กรุณากรอกชื่อ");
+                    setErrors.setFirstName("กรุณากรอกชื่อ");
+                  } else {
+                    setErrors.setFirstName("");
                   }
                 }}
                 required
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
-                  firstNameError
+                  errors.firstName
                     ? "border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:ring-blue-500"
                 }`}
               />
-              {firstNameError && (
-                <p className="text-red-500 text-xs mt-1">{firstNameError}</p>
+              {errors.firstName && (
+                <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
               )}
             </div>
 
@@ -318,24 +123,23 @@ export default function PatientForm() {
                 type="text"
                 name="last_name"
                 value={formData.last_name}
-                onChange={(e) => {
-                  handleChange(e);
-                  if (lastNameError) setLastNameError("");
-                }}
+                onChange={handleChange}
                 onBlur={(e) => {
                   if (e.target.value.trim() === "") {
-                    setLastNameError("กรุณากรอกนามสกุล");
+                    setErrors.setLastName("กรุณากรอกนามสกุล");
+                  } else {
+                    setErrors.setLastName("");
                   }
                 }}
                 required
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
-                  lastNameError
+                  errors.lastName
                     ? "border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:ring-blue-500"
                 }`}
               />
-              {lastNameError && (
-                <p className="text-red-500 text-xs mt-1">{lastNameError}</p>
+              {errors.lastName && (
+                <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
               )}
             </div>
 
@@ -347,24 +151,23 @@ export default function PatientForm() {
                 type="date"
                 name="date_of_birth"
                 value={formData.date_of_birth}
-                onChange={(e) => {
-                  handleChange(e);
-                  if (dobError) setDobError("");
-                }}
+                onChange={handleChange}
                 onBlur={(e) => {
                   if (e.target.value === "") {
-                    setDobError("กรุณาเลือกวันเกิด");
+                    setErrors.setDob("กรุณาเลือกวันเกิด");
+                  } else {
+                    setErrors.setDob("");
                   }
                 }}
                 required
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
-                  dobError
+                  errors.dob
                     ? "border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:ring-blue-500"
                 }`}
               />
-              {dobError && (
-                <p className="text-red-500 text-xs mt-1">{dobError}</p>
+              {errors.dob && (
+                <p className="text-red-500 text-xs mt-1">{errors.dob}</p>
               )}
             </div>
 
@@ -441,51 +244,21 @@ export default function PatientForm() {
                 type="tel"
                 name="phone"
                 value={formData.phone}
-                onChange={(e) => {
-                  const formatted = formatPhoneNumber(e.target.value);
-                  const newData = { ...formData, phone: formatted };
-                  setFormData(newData);
-                  setPhoneError("");
-
-                  // Debounce auto-save
-                  if (saveTimeoutRef.current) {
-                    clearTimeout(saveTimeoutRef.current);
-                  }
-
-                  saveTimeoutRef.current = setTimeout(() => {
-                    autoSave(newData);
-                  }, 1000);
-                }}
+                onChange={handlePhoneChange}
                 onBlur={(e) => {
                   const result = validatePhoneNumber(e.target.value);
                   if (!result.isValid && e.target.value) {
-                    setPhoneError(result.error || "");
-                    // When phone has error, validate all required fields
-                    if (formData.first_name.trim() === "")
-                      setFirstNameError("กรุณากรอกชื่อ");
-                    if (formData.last_name.trim() === "")
-                      setLastNameError("กรุณากรอกนามสกุล");
-                    if (formData.date_of_birth === "")
-                      setDobError("กรุณาเลือกวันเกิด");
-                    if (formData.address.trim() === "")
-                      setAddressError("กรุณากรอกที่อยู่");
-                    // Also validate email
-                    const emailResult = validateEmail(formData.email);
-                    if (!emailResult.isValid && formData.email) {
-                      setEmailError(
-                        emailResult.error || "กรุณากรอกอีเมลที่ถูกต้อง"
-                      );
-                    }
+                    setErrors.setPhone(result.error || "");
                   }
                 }}
                 placeholder="081-234-5678"
                 required
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500 ${
-                  phoneError ? "border-red-500" : "border-gray-300"
+                  errors.phone ? "border-red-500" : "border-gray-300"
                 }`}
               />
-              {phoneError && (
-                <p className="text-red-500 text-xs mt-1">{phoneError}</p>
+              {errors.phone && (
+                <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
               )}
             </div>
 
@@ -499,32 +272,18 @@ export default function PatientForm() {
                 value={formData.email}
                 required
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-500 ${
-                  emailError ? "border-red-500" : "border-gray-300"
+                  errors.email ? "border-red-500" : "border-gray-300"
                 }`}
                 onBlur={(e) => {
                   const result = validateEmail(e.target.value);
                   if (!result.isValid && e.target.value) {
-                    setEmailError(result.error || "");
-                    // When email has error, validate all required fields
-                    if (formData.first_name.trim() === "")
-                      setFirstNameError("กรุณากรอกชื่อ");
-                    if (formData.last_name.trim() === "")
-                      setLastNameError("กรุณากรอกนามสกุล");
-                    if (formData.date_of_birth === "")
-                      setDobError("กรุณาเลือกวันเกิด");
-                    if (formData.address.trim() === "")
-                      setAddressError("กรุณากรอกที่อยู่");
-                  } else {
-                    setEmailError("");
+                    setErrors.setEmail(result.error || "");
                   }
                 }}
-                onChange={(e) => {
-                  handleChange(e);
-                  if (emailError) setEmailError("");
-                }}
+                onChange={handleChange}
               />
-              {emailError && (
-                <p className="text-red-500 text-xs mt-1">{emailError}</p>
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
               )}
             </div>
 
@@ -535,25 +294,24 @@ export default function PatientForm() {
               <textarea
                 name="address"
                 value={formData.address}
-                onChange={(e) => {
-                  handleChange(e);
-                  if (addressError) setAddressError("");
-                }}
+                onChange={handleChange}
                 onBlur={(e) => {
                   if (e.target.value.trim() === "") {
-                    setAddressError("กรุณากรอกที่อยู่");
+                    setErrors.setAddress("กรุณากรอกที่อยู่");
+                  } else {
+                    setErrors.setAddress("");
                   }
                 }}
                 required
                 rows={2}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-gray-500 ${
-                  addressError
+                  errors.address
                     ? "border-red-500 focus:ring-red-500"
                     : "border-gray-300 focus:ring-blue-500"
                 }`}
               />
-              {addressError && (
-                <p className="text-red-500 text-xs mt-1">{addressError}</p>
+              {errors.address && (
+                <p className="text-red-500 text-xs mt-1">{errors.address}</p>
               )}
             </div>
           </div>
@@ -601,7 +359,7 @@ export default function PatientForm() {
             className={`font-semibold px-8 py-3 rounded-lg shadow-md transition-all flex items-center gap-2 ${
               !isFormValid() || isSubmitting
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 hover:shadow-lg text-white"
+                : "bg-teal-600 hover:bg-teal-700 hover:shadow-lg text-white"
             }`}
           >
             {isSubmitting && (

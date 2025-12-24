@@ -1,94 +1,36 @@
-import Link from "next/link";
+import PortalCard from "@/app/components/PortalCard";
+import { PORTAL_CARDS } from "@/app/constants/portalCards";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4 sm:p-8">
+      <div className="max-w-7xl w-full">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            🏥 Patient Sync
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4">
+            Welcome to <span className="text-blue-600">Patient Sync</span>
           </h1>
-          <p className="text-xl text-gray-600">
-            Real-time Patient Registration System
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+            A smarter way to manage your health journey. Please select your
+            portal to continue.
           </p>
         </div>
 
-        {/* Cards */}
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Patient Card */}
-          <Link href="/patient">
-            <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all hover:scale-105 cursor-pointer border-2 border-transparent hover:border-blue-400">
-              <div className="text-center">
-                <div className="text-7xl mb-6">👤</div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                  Patient
-                </h2>
-                <p className="text-gray-600 mb-6">ฉันเป็นผู้ป่วย</p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    กรอกฟอร์มข้อมูลส่วนตัว
-                    <br />
-                    Fill out registration form
-                  </p>
-                </div>
-                <div className="mt-6">
-                  <span className="inline-flex items-center gap-2 text-blue-600 font-semibold">
-                    เริ่มกรอกข้อมูล
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Link>
-
-          {/* Staff Card */}
-          <Link href="/staff">
-            <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all hover:scale-105 cursor-pointer border-2 border-transparent hover:border-green-400">
-              <div className="text-center">
-                <div className="text-7xl mb-6">👨‍⚕️</div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">Staff</h2>
-                <p className="text-gray-600 mb-6">ฉันเป็นเจ้าหน้าที่</p>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-800">
-                    ดูข้อมูลผู้ป่วยแบบ Real-time
-                    <br />
-                    View patient data in real-time
-                  </p>
-                </div>
-                <div className="mt-6">
-                  <span className="inline-flex items-center gap-2 text-green-600 font-semibold">
-                    เข้าสู่ Dashboard
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Link>
+        {/* Cards Container */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 max-w-5xl mx-auto">
+          {PORTAL_CARDS.map((portal) => (
+            <PortalCard
+              key={portal.id}
+              title={portal.title}
+              description={portal.description}
+              image={portal.image}
+              icon={portal.icon}
+              iconBgColor={portal.iconBgColor}
+              buttonColor={portal.buttonColor}
+              buttonHoverColor={portal.buttonHoverColor}
+              href={portal.href}
+            />
+          ))}
         </div>
       </div>
     </div>

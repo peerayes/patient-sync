@@ -1,12 +1,13 @@
+import { supabase } from "@/app/lib/supabase";
 import { Patient } from "@/app/types/patient";
 import {
   formatPhoneNumberWithSpace,
   validatePhoneNumber,
 } from "@/app/utils/formatPhone";
 import { validateEmail } from "@/app/utils/validators";
-import { supabase } from "@/app/lib/supabase";
-import StatusBadge from "./StatusBadge";
+import { Cake, Mail, MapPin, Phone } from "lucide-react";
 import { useState } from "react";
+import StatusBadge from "./StatusBadge";
 
 interface PatientCardProps {
   patient: Patient;
@@ -43,7 +44,11 @@ export default function PatientCard({ patient, onDelete }: PatientCardProps) {
   const emailValidation = validateEmail(patient.email);
 
   const handleDelete = async () => {
-    if (!confirm(`ต้องการลบข้อมูลของ ${patient.first_name} ${patient.last_name} ใช่หรือไม่?`)) {
+    if (
+      !confirm(
+        `ต้องการลบข้อมูลของ ${patient.first_name} ${patient.last_name} ใช่หรือไม่?`
+      )
+    ) {
       return;
     }
 
@@ -69,10 +74,10 @@ export default function PatientCard({ patient, onDelete }: PatientCardProps) {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
+    <div className="bg-white rounded-lg p-4 shadow-xs hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-center mb-3">
+        <div className="mb-1">
+          <h3 className="text-2xl font-semibold text-gray-900">
             {patient.first_name} {patient.middle_name} {patient.last_name}
           </h3>
           <p className="text-sm text-gray-500">ID: {patient.session_id}</p>
@@ -82,7 +87,9 @@ export default function PatientCard({ patient, onDelete }: PatientCardProps) {
 
       <div className="space-y-2 text-sm">
         <div className="flex items-center gap-2">
-          <span className="text-gray-500">📞</span>
+          <span className="text-gray-500">
+            <Phone className="w-4 h-4" />
+          </span>
           <span className="text-gray-700">
             {formatPhoneNumberWithSpace(patient.phone)}
           </span>
@@ -94,7 +101,9 @@ export default function PatientCard({ patient, onDelete }: PatientCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-gray-500">📧</span>
+          <span className="text-gray-500">
+            <Mail className="w-4 h-4" />
+          </span>
           <span className="text-gray-700">{patient.email}</span>
           {!emailValidation.isValid && (
             <span className="text-red-500 text-xs ml-2">
@@ -105,7 +114,9 @@ export default function PatientCard({ patient, onDelete }: PatientCardProps) {
 
         {patient.date_of_birth && (
           <div className="flex items-center gap-2">
-            <span className="text-gray-500">🎂</span>
+            <span className="text-gray-500">
+              <Cake className="w-4 h-4" />
+            </span>
             <span className="text-gray-700">
               {new Date(patient.date_of_birth).toLocaleDateString("th-TH")}
             </span>
@@ -114,7 +125,9 @@ export default function PatientCard({ patient, onDelete }: PatientCardProps) {
 
         {patient.address && (
           <div className="flex items-center gap-2">
-            <span className="text-gray-500">📍</span>
+            <span className="text-gray-500">
+              <MapPin className="w-4 h-4" />
+            </span>
             <span className="text-gray-700 line-clamp-1">
               {patient.address}
             </span>
@@ -122,17 +135,17 @@ export default function PatientCard({ patient, onDelete }: PatientCardProps) {
         )}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+      <div className="mt-2 pt-3 border-t border-gray-100 flex justify-between items-center">
         <p className="text-xs text-gray-400">
           Updated: {getTimeAgo(patient.updated_at)}
         </p>
         <button
           onClick={handleDelete}
           disabled={isDeleting}
-          className={`text-xs px-3 py-1 rounded-md transition-colors ${
+          className={`text-xs px-3 py-1 rounded-full transition-colors ${
             isDeleting
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-red-500 hover:bg-red-600 text-white"
+              : "bg-red-50 hover:bg-red-600 text-red-500 border border-red-200"
           }`}
         >
           {isDeleting ? "Deleting..." : "Delete"}

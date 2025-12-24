@@ -5,7 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Define the database schema
-export type Database = {
+export interface Database {
   public: {
     Tables: {
       patients: {
@@ -21,19 +21,7 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      [_ in never]: never;
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
   };
-};
+}
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
